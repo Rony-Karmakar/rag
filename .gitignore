@@ -1,0 +1,9 @@
+# Virtual environment folder
+env/
+venv/
+.venv/
+
+# Environment variables (API keys)
+.env
+
+__pycache__
