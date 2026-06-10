@@ -2,27 +2,28 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 from langchain_qdrant import QdrantVectorStore
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # Load variables globally
 load_dotenv()
+API_KEY = os.getenv("API_KEY")
+BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
-embedding_model = GoogleGenerativeAIEmbeddings(model="gemini-embedding-001")
-
-vector_db = QdrantVectorStore.from_existing_collection(
-    url="http://localhost:6333",
-    collection_name="learning_rag_queue",
-    embedding=embedding_model,
+openai_client = OpenAI(
+    api_key=API_KEY,
+    base_url=BASE_URL
 )
-
 
 def process_query(query: str):
     # 1. Initialize models inside the worker function to avoid Windows process deadlocks
-    openai_client = OpenAI(
-        api_key=os.getenv("API_KEY"),
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+    embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+    vector_db = QdrantVectorStore.from_existing_collection(
+        url="http://localhost:6333",
+        collection_name="learning_rag",
+        embedding=embedding_model,
     )
-    
+
     print("Searching Chunks:", query)
     search_results = vector_db.similarity_search(query=query)
     context = "\n\n\n".join([
@@ -42,7 +43,7 @@ def process_query(query: str):
     """
 
     response = openai_client.chat.completions.create(
-        model="gemini-2.5-flash-preview",
+        model="gemini-2.5-flash",
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": query}
@@ -50,6 +51,7 @@ def process_query(query: str):
     )
     
     answer = response.choices[0].message.content
+    print(f"🤖: {answer}")
     
     # 2. CRITICAL: Return the answer so RQ saves it to Redis for FastAPI to fetch later
     return answer

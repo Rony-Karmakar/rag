@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
 
 load_dotenv()
@@ -19,15 +19,14 @@ text_splitter = RecursiveCharacterTextSplitter(
 
 chunks = text_splitter.split_documents(documents=docs)
 
-embedding_model = GoogleGenerativeAIEmbeddings(
-    model="gemini-embedding-001",
-)
+embedding_model = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 vector_store = QdrantVectorStore.from_documents(
     documents=chunks,
     embedding=embedding_model,
     url="http://localhost:6333",
-    collection_name="learning_rag_queue"
+    collection_name="learning_rag_queue",
+    force_recreate=True
 )
 
 print("Indexing of document done....")
